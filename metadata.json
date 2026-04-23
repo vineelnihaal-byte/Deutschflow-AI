@@ -1,0 +1,13 @@
+{
+  "name": "DeutschFlow",
+  "description": "An interactive AI-powered German learning platform with voice roleplay, visual learning, exam preparation (Goethe, telc), and business German interview practice.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI-powered interactive learning",
+    "Voice roleplay",
+    "Exam preparation",
+    "Business German"
+  ]
+}

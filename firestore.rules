@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'level']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] &&
+             data.uid.size() <= 128 &&
+             data.email.size() <= 256;
+    }
+
+    function isValidProgress(data) {
+      return data.keys().hasAll(['category', 'score']) &&
+             data.category is string &&
+             data.score is int &&
+             data.score >= 0 && data.score <= 100;
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && 
+                      isValidUser(request.resource.data) &&
+                      request.resource.data.uid == resource.data.uid && // Immutable
+                      request.resource.data.email == resource.data.email && // Immutable
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['level', 'xp', 'streak', 'updatedAt', 'displayName']);
+
+      match /progress/{progressId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProgress(request.resource.data);
+        allow update: if isOwner(userId) && 
+                        isValidProgress(request.resource.data) &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score', 'lastUpdated', 'subCategory']);
+        allow delete: if isOwner(userId);
+      }
+    }
+    
+    // Testing collection
+    match /test/connection {
+      allow get: if true;
+    }
+  }
+}
